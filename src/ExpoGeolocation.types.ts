@@ -1,19 +1,10 @@
-import type { StyleProp, ViewStyle } from 'react-native';
-
-export type OnLoadEventPayload = {
-  url: string;
+export type LocationData = {
+  latitude: number;
+  longitude: number;
 };
+
+export type WatchPositionChangedCallback = (data: LocationData) => void;
 
 export type ExpoGeolocationModuleEvents = {
-  onChange: (params: ChangeEventPayload) => void;
-};
-
-export type ChangeEventPayload = {
-  value: string;
-};
-
-export type ExpoGeolocationViewProps = {
-  url: string;
-  onLoad: (event: { nativeEvent: OnLoadEventPayload }) => void;
-  style?: StyleProp<ViewStyle>;
+  watchPositionChanged: WatchPositionChangedCallback
 };
