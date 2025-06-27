@@ -41,7 +41,7 @@ async function getLocation() {
 - `getCurrentPosition(timeoutMs)`: Get the current location. If a GPS fix is available within the timeout (e.g. 10s), it is returned; otherwise, the most recent available location from other providers is returned.
 - `requestPermissions()`: Request location permissions from the user.
 - `checkSelfPermission()`: Check if location permissions are granted.
-- `isGpsEnabled()`: Check if GPS is enabled.
+- `isGPSEnabled()`: Check if GPS is enabled.
 - `isNetworkEnabled()`: Check if network location is enabled.
 - `openLocationSettings()`: Open the device's location settings.
 

@@ -37,7 +37,7 @@ class ExpoGeolocationModule : Module() {
         Log.d(TAG, "[${location.provider}] location listener change: ${location.latitude}, ${location.longitude}")
     }
 
-    fun isGpsEnabled(): Boolean {
+    fun isGPSEnabled(): Boolean {
         return lm?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
     }
 
@@ -170,8 +170,8 @@ class ExpoGeolocationModule : Module() {
             promise.resolve(checkSelfPermission())
         }
 
-        AsyncFunction("isGpsEnabled") { promise: Promise ->
-            promise.resolve(isGpsEnabled())
+        AsyncFunction("isGPSEnabled") { promise: Promise ->
+            promise.resolve(isGPSEnabled())
         }
 
         AsyncFunction("isNetworkEnabled") { promise: Promise ->

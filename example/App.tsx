@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Button, Text, View, StyleSheet, ScrollView } from 'react-native';
-import ExpoGeolocation from '../src';
+import ExpoGeolocation from 'expo-geolocation';
 
 export default function App() {
   const [location, setLocation] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [isGpsEnabled, setIsGpsEnabled] = useState<boolean | null>(null);
+  const [isGPSEnabled, setIsGPSEnabled] = useState<boolean | null>(null);
   const [isNetworkEnabled, setIsNetworkEnabled] = useState<boolean | null>(null);
   const [watching, setWatching] = useState<boolean>(false);
 
@@ -45,10 +45,10 @@ export default function App() {
     }
   };
 
-  const checkGpsEnabled = async () => {
+  const checkGPSEnabled = async () => {
     try {
-      const enabled = await ExpoGeolocation.isGpsEnabled();
-      setIsGpsEnabled(enabled);
+      const enabled = await ExpoGeolocation.isGPSEnabled();
+      setIsGPSEnabled(enabled);
     } catch (e: any) {
       setError(e?.message || 'Failed to check GPS');
     }
@@ -105,10 +105,10 @@ export default function App() {
             </Text>
           </View>
         )}
-        {isGpsEnabled !== null && (
-          <View style={[styles.statusTag, isGpsEnabled ? styles.statusGranted : styles.statusDenied]}>
+        {isGPSEnabled !== null && (
+          <View style={[styles.statusTag, isGPSEnabled ? styles.statusGranted : styles.statusDenied]}>
             <Text style={styles.statusText}>
-              GPS: {isGpsEnabled ? 'Enabled' : 'Disabled'}
+              GPS: {isGPSEnabled ? 'Enabled' : 'Disabled'}
             </Text>
           </View>
         )}
@@ -147,7 +147,7 @@ export default function App() {
           <Button title="Get Current Location" color="#0288D1" onPress={getLocation} />
         </View>
         <View style={styles.buttonContainer}>
-          <Button title="Check GPS" color="#FBC02D" onPress={checkGpsEnabled} />
+          <Button title="Check GPS" color="#FBC02D" onPress={checkGPSEnabled} />
         </View>
         <View style={styles.buttonContainer}>
           <Button title="Check Network" color="#7B1FA2" onPress={checkNetworkEnabled} />
