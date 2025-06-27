@@ -16,11 +16,12 @@ import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
+import android.location.Location
 
 class ExpoGeolocationModule : Module() {
     
     companion object {
-        const val TAG = "location"
+        const val TAG = "expo-geolocation"
         const val PERMISSION_REQUEST_CODE = 1234
     }
 
@@ -33,18 +34,7 @@ class ExpoGeolocationModule : Module() {
         get() = context?.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
     private val locationListener = android.location.LocationListener { location ->
-        Log.d(TAG, "watch location change: ${location.latitude}, ${location.longitude}")
-        sendEvent(
-            "watchPositionChanged",
-            mapOf(
-                "latitude" to location.latitude,
-                "longitude" to location.longitude
-            )
-        )
-    }
-    
-    fun showToast(msg: String) {
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        Log.d(TAG, "[${location.provider}] location listener change: ${location.latitude}, ${location.longitude}")
     }
 
     fun isGpsEnabled(): Boolean {
@@ -55,27 +45,26 @@ class ExpoGeolocationModule : Module() {
         return lm?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ?: false
     }
 
-    fun openGpsSettings() {
+    fun openLocationSettings() {
         val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         context?.startActivity(intent)
     }
 
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
-    fun watchGPS() {
+    fun startListener() {
         lm?.removeUpdates(locationListener)
         try {
             lm?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0f, locationListener)
+            lm?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0f, locationListener)
         } catch (e: SecurityException) {
             Log.e(TAG, "Location permissions not granted", e)
-            showToast("Location permissions not granted")
         } catch (e: Exception) {
             Log.e(TAG, "Error starting GPS", e)
-            showToast("Error starting GPS: ${e.message}")
         }
     }
 
-    private fun stopWatchGPS() {
+    private fun stopListener() {
         lm?.removeUpdates(locationListener)
     }
 
@@ -109,69 +98,68 @@ class ExpoGeolocationModule : Module() {
         return fineLocation && coarseLocation
     }
 
-    fun getCurrentPosition(): Map<String, Double> {
+    fun getCurrentPosition(msTimeSpec: Int): Map<String, Any> {
         if (!checkSelfPermission()) {
             Log.e(TAG, "Location Permissions not granted")
             return emptyMap()
         }
-
         val providers = lm?.allProviders ?: emptyList()
+        val historyLocations = mutableMapOf<Long, Location>()
+        val responseMap = mutableMapOf<String, Any>()
+        val nTime = System.currentTimeMillis()
 
         Log.d(TAG, "All Provider: $providers")
 
         if (providers.contains(LocationManager.GPS_PROVIDER)) {
-            Log.d(TAG, "GPS Provider Loader")
-
-            val l = lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            Log.d(TAG, "GPS Location: $l")
-
-            if (l != null) {
-                return mapOf(
-                    "latitude" to l.latitude,
-                    "longitude" to l.longitude
+            val l1 = lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            if (l1 != null) {
+                Log.d(
+                    TAG,
+                    "GPS Check: now($nTime) - gps.time(${l1.time})= ${nTime - l1.time}, msTimeSpec: $msTimeSpec"
                 )
-            }
-        }
-
-        if (providers.contains(LocationManager.PASSIVE_PROVIDER)) {
-            Log.d(TAG, "Passive Provider Loader")
-
-            val l = lm?.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
-            Log.d(TAG, "Passive Location: $l")
-
-            if (l != null) {
-                return mapOf(
-                    "latitude" to l.latitude,
-                    "longitude" to l.longitude
-                )
+                if (nTime - l1.time < msTimeSpec) {
+                    responseMap["latitude"] = l1.latitude
+                    responseMap["longitude"] = l1.longitude
+                    responseMap["provider"] = l1.provider.toString()
+                    return responseMap
+                }
+                historyLocations[l1.time] = l1
             }
         }
 
         if (providers.contains(LocationManager.NETWORK_PROVIDER)) {
-            Log.d(TAG, "Network Provider Loader")
-
-            val l = lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-            Log.d(TAG, "Network Location: $l")
-
-            if (l != null) {
-                return mapOf(
-                    "latitude" to l.latitude,
-                    "longitude" to l.longitude
-                )
+            val l3 = lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            if (l3 != null) {
+                historyLocations[l3.time] = l3
             }
+        }
+
+        if (providers.contains(LocationManager.PASSIVE_PROVIDER)) {
+            val l2 = lm?.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
+            if (l2 != null) {
+                historyLocations[l2.time] = l2
+            }
+        }
+
+        val latestLocation = historyLocations.maxByOrNull { it.key }?.value
+        if (latestLocation != null) {
+            Log.d(
+                TAG,
+                "Latest Location: [${latestLocation.provider}] lTime: ${latestLocation.time} lat: ${latestLocation.latitude}, lng: ${latestLocation.longitude}"
+            )
+
+            responseMap["latitude"] = latestLocation.latitude
+            responseMap["longitude"] = latestLocation.longitude
+            responseMap["provider"] = latestLocation.provider.toString()
+            return responseMap
         }
 
         Log.e(TAG, "Load All Providers Data is null")
         return emptyMap()
     }
 
-    
-    
-
     override fun definition() = ModuleDefinition {
         Name("ExpoGeolocation")
-
-        Events("watchPositionChanged")
 
         AsyncFunction("requestPermissions") { promise: Promise ->
             requestPermissions()
@@ -190,20 +178,20 @@ class ExpoGeolocationModule : Module() {
             promise.resolve(isNetworkEnabled())
         }
 
-        AsyncFunction("watchGPS") { promise: Promise ->
-            promise.resolve(watchGPS())
+        AsyncFunction("start") { promise: Promise ->
+            promise.resolve(startListener())
         }
 
-        AsyncFunction("stopWatchGPS") { promise: Promise ->
-            promise.resolve(stopWatchGPS())
+        AsyncFunction("stop") { promise: Promise ->
+            promise.resolve(stopListener())
         }
 
-        AsyncFunction("openGpsSettings") { promise: Promise ->
-            promise.resolve(openGpsSettings())
+        AsyncFunction("openLocationSettings") { promise: Promise ->
+            promise.resolve(openLocationSettings())
         }
 
-        AsyncFunction("getCurrentPosition") { promise: Promise ->
-            val position = getCurrentPosition()
+        AsyncFunction("getCurrentPosition") { msTimeSpec: Int, promise: Promise ->
+            val position = getCurrentPosition(msTimeSpec)
             if (position.isEmpty()) {
                 promise.reject("NO_POSITION", "Could not retrieve current position", null)
             } else {

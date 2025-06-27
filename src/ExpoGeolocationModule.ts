@@ -1,15 +1,15 @@
 import { NativeModule, requireNativeModule } from 'expo';
-import type { LocationData, ExpoGeolocationModuleEvents } from "./ExpoGeolocation.types";
+import type { LocationData } from "./ExpoGeolocation.types";
 
-declare class ExpoGeolocationModule extends NativeModule<ExpoGeolocationModuleEvents> {
+declare class ExpoGeolocationModule extends NativeModule {
   requestPermissions(): Promise<boolean>;
   checkSelfPermission(): Promise<boolean>;
   isGpsEnabled(): Promise<boolean>;
   isNetworkEnabled(): Promise<boolean>;
-  watchGPS(): Promise<void>;
-  stopWatchGPS(): Promise<void>;
-  openGpsSettings(): Promise<void>;
-  getCurrentPosition(): Promise<LocationData>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  openLocationSettings(): Promise<void>;
+  getCurrentPosition(msTimeSpec: number): Promise<LocationData>;
 }
 
 // This call loads the native module object from the JSI.

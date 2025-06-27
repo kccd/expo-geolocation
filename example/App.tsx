@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Text, View, StyleSheet, Platform, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { Button, Text, View, StyleSheet, ScrollView } from 'react-native';
 import ExpoGeolocation from '../src';
 
 export default function App() {
@@ -9,13 +9,6 @@ export default function App() {
   const [isGpsEnabled, setIsGpsEnabled] = useState<boolean | null>(null);
   const [isNetworkEnabled, setIsNetworkEnabled] = useState<boolean | null>(null);
   const [watching, setWatching] = useState<boolean>(false);
-
-  useEffect(() => {
-    const unsubscribe = ExpoGeolocation.addListener('watchPositionChanged', (data) => {
-      setLocation(data);
-    });
-    return () => unsubscribe.remove();
-  }, []);
 
   const checkPermissions = async () => {
     try {
@@ -45,7 +38,7 @@ export default function App() {
         setError('Location permission not granted');
         return;
       }
-      const loc = await ExpoGeolocation.getCurrentPosition();
+      const loc = await ExpoGeolocation.getCurrentPosition(10 * 1000); // 
       setLocation(loc);
     } catch (e: any) {
       setError(e?.message || 'Failed to get location');
@@ -70,29 +63,29 @@ export default function App() {
     }
   };
 
-  const startWatch = async () => {
+  const start = async () => {
     setError(null);
     try {
-      await ExpoGeolocation.watchGPS();
+      await ExpoGeolocation.start();
       setWatching(true);
     } catch (e: any) {
       setError(e?.message || 'Failed to start watch');
     }
   };
 
-  const stopWatch = async () => {
+  const stop = async () => {
     setError(null);
     try {
-      await ExpoGeolocation.stopWatchGPS();
+      await ExpoGeolocation.stop();
       setWatching(false);
     } catch (e: any) {
       setError(e?.message || 'Failed to stop watch');
     }
   };
 
-  const openGpsSettings = async () => {
+  const openLocationSettings = async () => {
     try {
-      await ExpoGeolocation.openGpsSettings();
+      await ExpoGeolocation.openLocationSettings();
     } catch (e: any) {
       setError(e?.message || 'Failed to open GPS settings');
     }
@@ -100,62 +93,76 @@ export default function App() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>GPS Demo</Text>
+      <View style={styles.headerBox}>
+        <Text style={styles.title}>expo-geolocation</Text>
+      </View>
 
-      {Platform.OS === 'android' && (
-        <>
-          <View style={styles.buttonContainer}>
-            <Button title="Check Permissions" onPress={checkPermissions} />
-          </View>
-          <View style={styles.buttonContainer}>
-            <Button title="Request Permissions" onPress={requestPermissions} />
-          </View>
-          {hasPermission !== null && (
-            <Text style={styles.permissionText}>
-              {hasPermission ? '✅ Permission granted' : '❌ Permission denied'}
+      <View style={styles.statusRow}>
+        {hasPermission !== null && (
+          <View style={[styles.statusTag, hasPermission ? styles.statusGranted : styles.statusDenied]}>
+            <Text style={styles.statusText}>
+              {hasPermission ? 'Permission Granted' : 'Permission Denied'}
             </Text>
-          )}
-        </>
-      )}
-
-      <View style={styles.buttonContainer}>
-        <Button title="Get Current Location" onPress={getLocation} />
+          </View>
+        )}
+        {isGpsEnabled !== null && (
+          <View style={[styles.statusTag, isGpsEnabled ? styles.statusGranted : styles.statusDenied]}>
+            <Text style={styles.statusText}>
+              GPS: {isGpsEnabled ? 'Enabled' : 'Disabled'}
+            </Text>
+          </View>
+        )}
+        {isNetworkEnabled !== null && (
+          <View style={[styles.statusTag, isNetworkEnabled ? styles.statusGranted : styles.statusDenied]}>
+            <Text style={styles.statusText}>
+              Network: {isNetworkEnabled ? 'Enabled' : 'Disabled'}
+            </Text>
+          </View>
+        )}
       </View>
-      <View style={styles.buttonContainer}>
-        <Button title="Check GPS Enabled" onPress={checkGpsEnabled} />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button title="Check Network Enabled" onPress={checkNetworkEnabled} />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button title="Open GPS Settings" onPress={openGpsSettings} />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button
-          title={watching ? "Stop Watch GPS" : "Start Watch GPS"}
-          onPress={watching ? stopWatch : startWatch}
-        />
-      </View>
-
-      {isGpsEnabled !== null && (
-        <Text style={styles.infoText}>
-          GPS: {isGpsEnabled ? '✅ Enabled' : '❌ Disabled'}
-        </Text>
-      )}
-      {isNetworkEnabled !== null && (
-        <Text style={styles.infoText}>
-          Network: {isNetworkEnabled ? '✅ Enabled' : '❌ Disabled'}
-        </Text>
-      )}
 
       {location && (
-        <View style={styles.info}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Location Info</Text>
           <Text>Latitude: {location.latitude}</Text>
           <Text>Longitude: {location.longitude}</Text>
+          <Text>Provider: {location.provider}</Text>
         </View>
       )}
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      <View style={styles.buttonGroup}>
+        <View style={styles.buttonContainer}>
+          <Button title="Check Permission" color="#1976D2" onPress={checkPermissions} />
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button title="Request Permission" color="#388E3C" onPress={requestPermissions} />
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button title="Get Current Location" color="#0288D1" onPress={getLocation} />
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button title="Check GPS" color="#FBC02D" onPress={checkGpsEnabled} />
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button title="Check Network" color="#7B1FA2" onPress={checkNetworkEnabled} />
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button title="Open Location Settings" color="#455A64" onPress={openLocationSettings} />
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button
+            title={watching ? "Stop Listener" : "Start Listener"}
+            color={watching ? "#D32F2F" : "#009688"}
+            onPress={watching ? stop : start}
+          />
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -163,34 +170,96 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 20
+    padding: 24,
+    backgroundColor: '#F5F7FA',
+  },
+  headerBox: {
+    width: '100%',
+    backgroundColor: '#1976D2',
+    paddingVertical: 24,
+    borderRadius: 12,
+    marginBottom: 24,
+    marginTop:24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
-    fontSize: 22,
-    marginBottom: 20
+    fontSize: 26,
+    color: '#fff',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statusTag: {
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginHorizontal: 4,
+    marginVertical: 2,
+  },
+  statusGranted: {
+    backgroundColor: '#C8E6C9',
+  },
+  statusDenied: {
+    backgroundColor: '#FFCDD2',
+  },
+  statusText: {
+    fontWeight: 'bold',
+    color: '#333',
+    fontSize: 14,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 18,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#1976D2',
+  },
+  errorCard: {
+    width: '100%',
+    backgroundColor: '#FFEBEE',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#D32F2F',
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  buttonGroup: {
+    width: '100%',
+    marginTop: 8,
   },
   buttonContainer: {
-    marginVertical: 5,
-    width: '80%'
+    marginVertical: 7,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
-  info: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5
-  },
-  error: {
-    color: 'red',
-    marginTop: 20
-  },
-  permissionText: {
-    marginVertical: 10,
-    fontWeight: 'bold'
-  },
-  infoText: {
-    marginTop: 10,
-    fontWeight: 'bold'
-  }
 });
