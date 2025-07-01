@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "expo.modules.geolocation.example"
+      "bundleIdentifier": "expo.modules.geolocation.example",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location permission to provide relevant functions"
+      }
     },
     "android": {
       "adaptiveIcon": {

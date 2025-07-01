@@ -1,48 +1,125 @@
 import ExpoModulesCore
+import CoreLocation
+
+class GeolocationModule: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published private(set) var currentPosition: CLLocation?
+    @Published private(set) var permissionStatus: CLAuthorizationStatus = .notDetermined
+    @Published private(set) var isRunning = false
+    
+    private let locationManager: CLLocationManager
+    
+    override init() {
+        locationManager = CLLocationManager()
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        permissionStatus = locationManager.authorizationStatus
+    }
+    
+    // MARK: - Public API
+    
+    func requestPermissions() {
+      return locationManager.requestWhenInUseAuthorization()
+    }
+    
+    func checkSelfPermission() -> CLAuthorizationStatus {
+        return locationManager.authorizationStatus
+    }
+    
+    func isGpsEnabled() -> Bool {
+        return CLLocationManager.locationServicesEnabled()
+    }
+    
+    func isNetworkEnabled() -> Bool {
+        return true
+    }
+    
+    func openLocationSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    func getCurrentPosition() -> CLLocation? {
+        return currentPosition
+    }
+    
+    func start() {
+        locationManager.startUpdatingLocation()
+        isRunning = true
+    }
+    
+    func stop() {
+        locationManager.stopUpdatingLocation()
+        isRunning = false
+    }
+    
+    // MARK: - CLLocationManagerDelegate
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        currentPosition = locations.last
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        permissionStatus = manager.authorizationStatus
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location manager error: \(error.localizedDescription)")
+    }
+}
 
 public class ExpoGeolocationModule: Module {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+  var locationManager: CLLocationManager?
+  var lastLocation: CLLocation?
+  var locationPromise: Promise?
+
+  private var geo = GeolocationModule()
+
   public func definition() -> ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ExpoGeolocation')` in JavaScript.
     Name("ExpoGeolocation")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants([
-      "PI": Double.pi
-    ])
+    // MARK: - Expo Modules Core Functions
 
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
+    AsyncFunction("requestPermissions") { (promise: Promise) in
+      promise.resolve(geo.requestPermissions())
     }
 
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
+    AsyncFunction("checkSelfPermission") { () -> Bool in
+      let status = geo.checkSelfPermission()
+      return status == .authorizedWhenInUse || status == .authorizedAlways
     }
 
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
-    View(ExpoGeolocationView.self) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { (view: ExpoGeolocationView, url: URL) in
-        if view.webView.url != url {
-          view.webView.load(URLRequest(url: url))
-        }
+    AsyncFunction("isGPSEnabled") { () -> Bool in
+      return geo.isGpsEnabled()
+    }
+
+    AsyncFunction("isNetworkEnabled") { () -> Bool in
+      return geo.isNetworkEnabled()
+    }
+
+    AsyncFunction("openLocationSettings") { () in
+     geo.openLocationSettings()
+    }
+
+    AsyncFunction("start") { () in
+     geo.start()
+    }
+
+    AsyncFunction("stop") { () in
+      geo.stop()
+    }
+
+    AsyncFunction("getCurrentPosition") { (msTimeSpec: Int, promise: Promise) in
+      if let location = geo.getCurrentPosition() {
+          promise.resolve([
+              "latitude": location.coordinate.latitude,
+              "longitude": location.coordinate.longitude,
+              "provider": "ios"
+          ])
+      } else {
+          promise.reject("NO_POSITION", "Location not available")
       }
-
-      Events("onLoad")
     }
   }
 }
