@@ -70,17 +70,27 @@ class ExpoGeolocationModule : Module() {
 
     fun requestPermissions() {
         val activity = getCurrentActivity()
-        if (activity != null) {
+        if (activity == null) {
+            Log.e(TAG, "No current activity to request permissions")
+            return
+        }
+
+        ActivityCompat.requestPermissions(
+            activity,
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ),
+            PERMISSION_REQUEST_CODE
+        )
+
+        // Background location permission is not required for Android versions below Q
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             ActivityCompat.requestPermissions(
                 activity,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
+                arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
                 PERMISSION_REQUEST_CODE
             )
-        } else {
-            Log.e(TAG, "No current activity to request permissions")
         }
     }
 

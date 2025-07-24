@@ -14,6 +14,17 @@ npx expo install expo-geolocation
 
 > **Note:** You should call `start()` once (typically at app startup). Do not call it repeatedly.
 
+IOS usage requires the following P list
+
+```
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>We need your location permission to provide relevant functions</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>We need your location permission to provide relevant functions</string>
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>We need your location permission to provide relevant functions</string>
+```
+
 ```js
 import ExpoGeolocation from 'expo-geolocation';
 

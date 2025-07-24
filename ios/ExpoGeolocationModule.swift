@@ -19,7 +19,7 @@ class GeolocationModule: NSObject, ObservableObject, CLLocationManagerDelegate {
     // MARK: - Public API
     
     func requestPermissions() {
-      return locationManager.requestWhenInUseAuthorization()
+      return locationManager.requestAlwaysAuthorization()
     }
     
     func checkSelfPermission() -> CLAuthorizationStatus {

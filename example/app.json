@@ -16,7 +16,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "expo.modules.geolocation.example",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "We need your location permission to provide relevant functions"
+        "NSLocationWhenInUseUsageDescription": "We need your location permission to provide relevant functions",
+        "NSLocationAlwaysUsageDescription": "We need your location permission to provide relevant functions",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location permission to provide relevant functions"
       }
     },
     "android": {
